@@ -1,0 +1,11 @@
+{
+  "name": "js-mongo",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Cole Voss <voss.cole@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "lodash": "^4.17.5",
+    "mongodb": "^3.0.6"
+  }
+}
