@@ -1,13 +1,22 @@
-const _ = require('lodash');
-const Utils = require('./Utils');
+const {
+  isArray,
+  isNumber,
+  isString,
+  isBoolean,
+  isDate,
+  isPlainObject,
+  isFunction,
+} = require('lodash');
+const Utils = require('../Utils');
+const Schema = require('./Schema');
 
 const primitiveCheckers = {
-  array: _.isArray,
-  number: _.isNumber,
-  string: _.isString,
-  boolean: _.isBoolean,
-  date: _.isDate,
-  object: _.isPlainObject,
+  array: isArray,
+  number: isNumber,
+  string: isString,
+  boolean: isBoolean,
+  date: isDate,
+  object: isPlainObject,
 };
 
 const createError = (key, expected, received, value) => {
@@ -26,7 +35,7 @@ const getPropType = (value) => {
   return typeof value;
 };
 
-const createChainableValidator = (validator) => {
+const createChainableValidator = (validator, type) => {
   const chainable = (isRequired, defaultVal, key, obj) => {
     const val = obj[key];
     if (val == null) {
@@ -35,7 +44,7 @@ const createChainableValidator = (validator) => {
       }
 
       if (defaultVal) {
-        obj[key] = _.isFunction(defaultVal) ? defaultVal() : defaultVal;
+        obj[key] = isFunction(defaultVal) ? defaultVal() : defaultVal;
 
         return validator(key, obj);
       }
@@ -47,8 +56,17 @@ const createChainableValidator = (validator) => {
   };
 
   const chained = chainable.bind(null, false, undefined);
+  chained.__type = type;
+
   chained.required = chainable.bind(null, true, undefined);
-  chained.default = (defaultVal) => chainable.bind(null, false, defaultVal);
+  chained.required.__type = type;
+
+  chained.default = (defaultVal) => {
+    const defaulter = chainable.bind(null, false, defaultVal);
+    defaulter.__type = type;
+
+    return defaulter;
+  };
 
   return chained;
 };
@@ -65,7 +83,7 @@ const createPrimitiveValitator = (expectedType) => {
     return val;
   };
 
-  return createChainableValidator(validator);
+  return createChainableValidator(validator, expectedType);
 };
 
 const createEnumValidator = (...types) => {
@@ -81,37 +99,32 @@ const createEnumValidator = (...types) => {
     );
   };
 
-  return createChainableValidator(validator);
+  return createChainableValidator(validator, 'enum');
 };
 
-const createSubDocumentValidor = (shape) => {
-  const validator = (key, obj) => {
+const createShapeValidator = (shape) => {
+  if (!isPlainObject(shape)) {
+    throw new Error('Please provide a plain object to Schema.shape.');
+  }
+
+  const validator = (key, obj, schema) => {
     const val = obj[key];
 
-    if (!_.isPlainObject(val)) {
+    if (!isPlainObject(val)) {
       return new TypeError(
         `Expected a subdocument for ${key} but recieved ${val}`,
       );
     }
 
-    const errors = [];
-
-    for (let key in shape) {
-      const keyValidator = shape[key];
-
-      const checkedVal = keyValidator(key, val);
-
-      if (checkedVal instanceof Error) {
-        errors.push(checkedVal);
-      }
+    try {
+      const validated = Schema.validate(val, shape);
+      return validated;
+    } catch (errors) {
+      return Error(errors);
     }
-
-    if (errors.length > 0) return Error(errors);
-
-    return val;
   };
 
-  return createChainableValidator(validator);
+  return createChainableValidator(validator, 'shape');
 };
 
 const createArrayOfTypeValidator = (checker) => {
@@ -119,7 +132,7 @@ const createArrayOfTypeValidator = (checker) => {
     const val = obj[key];
     const errors = [];
 
-    if (!_.isArray(val)) {
+    if (!isArray(val)) {
       return new TypeError(
         `Expected ${key} to be an array but received ${val}`,
       );
@@ -138,7 +151,7 @@ const createArrayOfTypeValidator = (checker) => {
     return val;
   };
 
-  return createChainableValidator(validator);
+  return createChainableValidator(validator, [checker]);
 };
 
 const createIdValidator = () => {
@@ -154,19 +167,24 @@ const createIdValidator = () => {
     return Utils.toObjectId(val);
   };
 
-  return createChainableValidator(validator);
+  return createChainableValidator(validator, 'id');
+};
+
+const createSubDocumentValidator = (subDocumentType) => {
+  const validator = (key, obj) => {
+    const val = obj[key];
+
+    return subDocumentType.schema.validate(val);
+  };
+
+  return createChainableValidator(validator, subDocumentType);
 };
 
 module.exports = {
-  string: createPrimitiveValitator('string'),
-  number: createPrimitiveValitator('number'),
-  date: createPrimitiveValitator('date'),
-  boolean: createPrimitiveValitator('boolean'),
-  array: createPrimitiveValitator('array'),
-  object: createPrimitiveValitator('object'),
-
-  enum: createEnumValidator,
-  subDoc: createSubDocumentValidor,
-  arrayOf: createArrayOfTypeValidator,
-  id: createIdValidator(),
+  createPrimitiveValitator,
+  createEnumValidator,
+  createShapeValidator,
+  createArrayOfTypeValidator,
+  createIdValidator,
+  createSubDocumentValidator,
 };

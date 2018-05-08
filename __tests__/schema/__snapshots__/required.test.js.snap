@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Schema.<type>.required Returns error if required key is not provided 1`] = `[TypeError: test is required but recieved undefined]`;

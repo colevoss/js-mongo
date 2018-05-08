@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Schema.shape Returns error 1`] = `[Error: TypeError: Expected key1 to be of type string but recieved number of 1,TypeError: Expected key2 to be of type number but recieved string of string]`;
+
+exports[`Schema.shape Throws error if an object is not supplied 1`] = `"Please provide a plain object to Schema.shape."`;

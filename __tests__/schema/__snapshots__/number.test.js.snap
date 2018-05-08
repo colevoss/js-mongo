@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Schema.number Returns error 1`] = `[TypeError: Expected test to be of type number but recieved string of string]`;

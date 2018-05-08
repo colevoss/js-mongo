@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Schema.array Returns error 1`] = `[TypeError: Expected test to be of type array but recieved number of 1]`;
